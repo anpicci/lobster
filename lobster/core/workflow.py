@@ -510,7 +510,7 @@ class Workflow(Configurable):
                 pset = None
 
             params['prologue'] = None
-            params['epilogue'] = ['python', 'merge_reports.py', 'report.json'] \
+            params['epilogue'] = ['python3', 'merge_reports.py', 'report.json'] \
                 + ["_".join(os.path.normpath(r).split(os.sep)[-3:]) for r in reports]
         else:
             inputs.extend((i, os.path.basename(i), True) for i in self.extra_inputs)

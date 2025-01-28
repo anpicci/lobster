@@ -46,6 +46,7 @@ Now that the `lobster` env is setup, in the future all you need to do is run the
 unset PYTHONPATH
 unset PERL5LIB
 conda activate lobster
+export PATH=/afs/crc.nd.edu/group/ccl/software/x86_64/RedHat9/cctools/7.11.1/bin:$PATH ##needed to use parrot_run when sandboxing CMSSW
 ```
 
 # Running a Simple Config
