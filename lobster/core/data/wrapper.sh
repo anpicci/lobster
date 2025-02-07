@@ -126,15 +126,18 @@ fi
 log "sourcing CMS setup"
 source /cvmfs/cms.cern.ch/cmsset_default.sh || exit_on_error $? 175 "Failed to source CMS"
 
-slc=$(egrep "Red Hat Enterprise|Scientific|CentOS" /etc/redhat-release | sed 's/.*[rR]elease \([0-9]*\).*/\1/')
-arch=$(echo sandbox-${LOBSTER_CMSSW_VERSION}-slc${slc}*.tar.bz2 | grep -oe "slc${slc}_[^.]*")
+# Determine the OS release version
+release=$(grep -Eo 'release [0-9]+' /etc/redhat-release | awk '{print $2}')
 
-if [ -z "$LOBSTER_PROXY_INFO" -o \( -z "$LOBSTER_LCG_CP" -a -z "$LOBSTER_GFAL_COPY" \) ]; then
-	log "sourcing OSG setup"
-	source /cvmfs/oasis.opensciencegrid.org/osg-software/osg-wn-client/"$LOBSTER_OSG_VERSION"/current/el$slc-$(uname -m)/setup.sh || exit_on_error $? 175 "Failed to source OSG"
+# Construct the arch variable to handle both slc and el architectures
+arch=$(echo sandbox-${LOBSTER_CMSSW_VERSION}-*${release}*.tar.bz2 | grep -oE "(slc|el)${release}_[^.]*")
 
-	[ -z "$LOBSTER_LCG_CP" ] && export LOBSTER_LCG_CP=$(command -v lcg-cp)
-	[ -z "$LOBSTER_GFAL_COPY" ] && export LOBSTER_GFAL_COPY=$(command -v gfal-copy)
+if [ -z "$LOBSTER_PROXY_INFO" ] || { [ -z "$LOBSTER_LCG_CP" ] && [ -z "$LOBSTER_GFAL_COPY" ]; }; then
+    log "sourcing OSG setup"
+    source /cvmfs/oasis.opensciencegrid.org/osg-software/osg-wn-client/"$LOBSTER_OSG_VERSION"/current/el$release-$(uname -m)/setup.sh || exit_on_error $? 175 "Failed to source OSG"
+
+    [ -z "$LOBSTER_LCG_CP" ] && export LOBSTER_LCG_CP=$(command -v lcg-cp)
+    [ -z "$LOBSTER_GFAL_COPY" ] && export LOBSTER_GFAL_COPY=$(command -v gfal-copy)
 fi
 
 log "env" "environment after sourcing startup scripts" env
@@ -145,6 +148,15 @@ log "creating new release $LOBSTER_CMSSW_VERSION for scram arch $arch"
 
 export SCRAM_ARCH=$arch
 scramv1 project -f CMSSW $LOBSTER_CMSSW_VERSION || exit_on_error $? 173 "Failed to create new release"
+
+log "testing sandbox-${LOBSTER_CMSSW_VERSION}-${arch}.tar.bz2"
+symlinks=$(tar -tvf sandbox-${LOBSTER_CMSSW_VERSION}-${arch}.tar.bz2 | grep '^l')
+if [[ -n "$symlinks" ]]; then
+    log "Found the following symlinks in sandbox-${LOBSTER_CMSSW_VERSION}-${arch}.tar.bz2:"
+    log "$symlinks"
+else
+    log "No symlinks found in sandbox-${LOBSTER_CMSSW_VERSION}-${arch}.tar.bz2"
+fi
 
 log "unpacking sandbox-${LOBSTER_CMSSW_VERSION}-${arch}.tar.bz2"
 tar xjf sandbox-${LOBSTER_CMSSW_VERSION}-${arch}.tar.bz2 || exit_on_error $? 170 "Failed to unpack sandbox!"
@@ -161,8 +173,35 @@ date +%s > t_wrapper_ready
 
 log "dir" "working directory before execution" ls -l
 
-$*
-res=$?
+echo "python3 --version"
+python3 --version
+echo "python --version"
+python --version
+echo "which python"
+which python
+echo "which python3"
+which python3
+
+echo "ls /usr/bin/python*"
+ls /usr/bin/python*
+
+echo ""
+echo "==================="
+
+orcommand="$*"
+echo "Command: $orcommand"
+
+## Replace standalone 'python' with 'python3', while preserving arguments with spaces
+#command=$(echo "$orcommand" | sed -E 's/\bpython\b/python3/g')
+#if [[ "$orcommand" == "$command" ]]; then
+#    echo "No changes made, running the original command..."
+#else
+#    echo "Modified command: $command"
+#fi
+
+# Execute the modified command
+eval "$orcommand"
+res=$?                           # Capture the exit status of the command
 
 log "dir" "working directory after execution" ls -l
 

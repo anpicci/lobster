@@ -54,7 +54,7 @@ class Mangler(logging.Formatter):
             fmt = '{chevron} {context}: {message}'
         else:
             fmt = '{chevron} {message}'
-        chevron = '>' * (record.levelno / logging.DEBUG + 1)
+        chevron = '>>>>>>>>>>>' #* (int(record.levelno / logging.DEBUG) + 1)
         return fmt.format(chevron=chevron, message=record.msg, date=time.strftime("%c"), context=self.context)
 
 
@@ -417,10 +417,14 @@ def copy_inputs(data, config, env):
         # one that will allow us to access the file
         for input in config['input']:
             if input.startswith('file://'):
-                path = os.path.join(input.replace('file://', '', 1), file)
-                logger.info("Trying local access method")
+                base = input.replace("file://", "").rstrip('/')
+                rfile = file.lstrip('/')
+                logger.info("input {} base {} rfile {}".format(input, base, rfile))
+                path = os.path.join(base, rfile)
+                #path = os.path.join(input.replace('file://', '/cms/cephfs/data', 1), file)
+                logger.info("Trying local access method {}".format(path))
                 if os.path.exists(path) and os.access(path, os.R_OK):
-                    filename = 'file:' + path
+                    filename = 'file://' + path
                     config['mask']['files'].append(filename)
                     config['file map'][filename] = file
 
@@ -431,8 +435,10 @@ def copy_inputs(data, config, env):
                     logger.info("Local access to input file unavailable")
                     data['transfers']['file']['stage-in failure'] += 1
             elif input.startswith('root://'):
+                logger.info("input {}".format(input))
                 logger.info("Trying xrootd access method")
                 server, path = re.match("root://([a-zA-Z0-9:.\-]+)/(.*)", input).groups()
+                logger.info("server {} path {}".format(server, path))
                 timeout = '300'  # if the server is bogus, xrdfs hangs instead of returning an error
                 args = [
                     "env",

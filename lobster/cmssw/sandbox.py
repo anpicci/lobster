@@ -56,7 +56,7 @@ class Sandbox(lobster.core.Sandbox):
         return False
 
     def _recycle(self, outdir):
-        release_and_arch = re.compile(r'sandbox-(.*)-(slc.*)-[A-Fa-f0-9]*.tar.bz2$')
+        release_and_arch = re.compile(r'sandbox-(.*?)-(slc\d+_\S+|el\d+_\S+)-[A-Fa-f0-9]+\.tar\.bz2$')
         shutil.copy2(self.recycle, outdir)
         m = release_and_arch.search(self.recycle)
         if not m:
@@ -65,7 +65,12 @@ class Sandbox(lobster.core.Sandbox):
         return rtname, rtarch, os.path.join(outdir, os.path.split(self.recycle)[-1])
 
     def _get_cmssw_arch(self, dirname):
+        # First, search for 'slc*'
         candidates = glob.glob('{}/.SCRAM/slc*'.format(dirname))
+        # If no 'slc*' is found, fallback to searching for 'el*'
+        if not candidates:
+            candidates = glob.glob('{}/.SCRAM/el*'.format(dirname))
+            
         if len(candidates) != 1:
             raise AttributeError("Can't determine SCRAM arch!")
         return os.path.basename(candidates[0])
