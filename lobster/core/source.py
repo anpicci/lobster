@@ -204,6 +204,7 @@ class TaskProvider(util.Timing):
                 getattr(self.config.workflows, wflow.parent.label).register(wflow)
                 if create:
                     total_units = wflow.dataset.total_units * len(wflow.unique_arguments)
+                    logger.info("total units: {}".format(total_units))
                     self.__store.register_dependency(wflow.label, wflow.parent.label, total_units)
 
         if not util.checkpoint(self.workdir, 'sandbox cmssw version'):
