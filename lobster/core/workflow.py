@@ -534,6 +534,9 @@ class Workflow(Configurable):
             params['append inputs to args'] = True
 
         params['executable'] = cmd
+        for ida, arg in enumerate(args):
+            if ">" in arg or "<" in arg or "=" in arg:
+                args[ida] = "\'" + arg + "\'"
         params['arguments'] = args
         if isinstance(self.dataset, ProductionDataset) and not merge:
             params['mask']['events per lumi'] = self.dataset.events_per_lumi
