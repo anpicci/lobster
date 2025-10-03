@@ -191,14 +191,6 @@ echo "==================="
 orcommand="$*"
 echo "Command: $orcommand"
 
-## Replace standalone 'python' with 'python3', while preserving arguments with spaces
-#command=$(echo "$orcommand" | sed -E 's/\bpython\b/python3/g')
-#if [[ "$orcommand" == "$command" ]]; then
-#    echo "No changes made, running the original command..."
-#else
-#    echo "Modified command: $command"
-#fi
-
 # Execute the modified command
 eval "$orcommand"
 res=$?                           # Capture the exit status of the command
