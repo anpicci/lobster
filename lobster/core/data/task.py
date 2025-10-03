@@ -19,6 +19,7 @@ import tempfile
 import time
 import traceback
 import xml.dom.minidom
+import logging
 
 sys.path.append('lobster')
 
@@ -33,7 +34,7 @@ ROOT.gErrorIgnoreLevel = ROOT.kError
 
 from ROOT import TFile
 
-
+logger = logging.getLogger("lobster.data.task")
 
 class Mangler(logging.Formatter):
 
@@ -416,6 +417,7 @@ def copy_inputs(data, config, env):
         # using AAA, we need to go through the list of inputs and find
         # one that will allow us to access the file
         for input in config['input']:
+            logger.debug("input", input)
             if input.startswith('file://'):
                 base = input.replace("file://", "").rstrip('/')
                 rfile = file.lstrip('/')
