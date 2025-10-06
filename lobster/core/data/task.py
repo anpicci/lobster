@@ -69,7 +69,7 @@ process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32({events}))
 
 import os
 _, major, minor, _ = os.environ["CMSSW_VERSION"].split('_', 3)
-if int(major) >= 7 and int(minor) >= 4:
+if int(major) >= 7 int(major) < 12 and int(minor) >= 4:
     xrdstats = cms.Service("XrdAdaptor::XrdStatisticsService",  cms.untracked.PSet(reportToFJR = cms.untracked.bool(True)))
     process.add_(xrdstats)
 
@@ -205,7 +205,7 @@ def calculate_alder32(data):
             stdout = p.communicate()[0]
 
             if p.returncode == 0:
-                checksum = stdout.split()[-2]
+                checksum = stdout.split()[-2].decode('utf-8')
         except Exception:
             pass
         data['files']['output_info'][fn]['adler32'] = checksum
