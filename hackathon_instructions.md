@@ -14,7 +14,7 @@ unset PYTHONPATH
 mkdir lobster-python3
 cd lobster-python3
 
-git clone https://github.com/NDCMS/lobster.git
+git clone https://github.com/anpicci/lobster.git
 cd lobster
 git checkout lobster-python3-run3
 
