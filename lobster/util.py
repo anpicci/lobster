@@ -30,6 +30,9 @@ except ImportError:  # pragma: no cover - optional dependency may be absent
 
 VERSION = "2.0a1"
 
+# Pickle protocol compatible with both Python 2 and Python 3.
+PICKLE_PROTOCOL = 2
+
 logger = logging.getLogger('lobster.util')
 
 

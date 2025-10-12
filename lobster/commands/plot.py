@@ -114,7 +114,7 @@ def mp_call(arg):
 def mp_pickle(plotdir, name, data):
     logger.debug("Saving data for {0}".format(name))
     with open(os.path.join(plotdir, name + '.pkl'), 'wb') as f:
-        pickle.dump(data, f)
+        pickle.dump(data, f, protocol=util.PICKLE_PROTOCOL)
 
 
 def mp_pie(vals, labels, name, plotdir=None, **kwargs):
