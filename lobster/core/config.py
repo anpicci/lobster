@@ -175,6 +175,9 @@ class AdvancedOptions(Configurable):
             practically quiet.
         osg_version : str
             The version of OSG you want lobster to run on.
+        python_interpreter : str
+            Optional path or executable name of the Python interpreter to use
+            on worker nodes.  Defaults to automatic detection.
         payload : int
             How many tasks to keep in the queue (minimum).  Note that the
             payload will increase with the number of cores available to
@@ -217,6 +220,7 @@ class AdvancedOptions(Configurable):
                  full_monitoring=False,
                  log_level=2,
                  osg_version=None,
+                 python_interpreter=None,
                  payload=10,
                  proxy=None,
                  threshold_for_failure=30,
@@ -243,6 +247,7 @@ class AdvancedOptions(Configurable):
         self.log_level = log_level
         self.payload = payload
         self.proxy = proxy if proxy is not None else cmssw.Proxy()
+        self.python_interpreter = python_interpreter
         self.threshold_for_failure = threshold_for_failure
         self.threshold_for_skipping = threshold_for_skipping
         self.wq_max_retries = wq_max_retries

@@ -12,17 +12,47 @@ exit_on_error() {
 }
 
 log() {
-	if [ $# -gt 2 ]; then
-		short=$1
-		long=$2
-		shift; shift
-		echo "==== $long @ $(date) ===="
-		eval $*|while read line; do
-			echo "== $short: $line"
-		done
-	else
-		echo "=== $1 @ $(date)"
-	fi
+        if [ $# -gt 2 ]; then
+                short=$1
+                long=$2
+                shift; shift
+                echo "==== $long @ $(date) ===="
+                eval $*|while read line; do
+                        echo "== $short: $line"
+                done
+        else
+                echo "=== $1 @ $(date)"
+        fi
+}
+
+resolve_python() {
+        if [ -n "$LOBSTER_PYTHON" ]; then
+                if [ -x "$LOBSTER_PYTHON" ]; then
+                        printf '%s\n' "$LOBSTER_PYTHON"
+                        return 0
+                elif command -v "$LOBSTER_PYTHON" >/dev/null 2>&1; then
+                        command -v "$LOBSTER_PYTHON"
+                        return 0
+                fi
+        fi
+
+        for candidate in python3 python; do
+                if command -v "$candidate" >/dev/null 2>&1; then
+                        command -v "$candidate"
+                        return 0
+                fi
+        done
+
+        if [ -n "$CMSSW_BASE" ] && [ -n "$SCRAM_ARCH" ]; then
+                for candidate in "$CMSSW_BASE/bin/$SCRAM_ARCH/python3" "$CMSSW_BASE/bin/$SCRAM_ARCH/python"; do
+                        if [ -x "$candidate" ]; then
+                                printf '%s\n' "$candidate"
+                                return 0
+                        fi
+                done
+        fi
+
+        return 1
 }
 
 date +%s > t_wrapper_start
@@ -173,17 +203,55 @@ date +%s > t_wrapper_ready
 
 log "dir" "working directory before execution" ls -l
 
-echo "python3 --version"
-python3 --version
-echo "python --version"
-python --version
-echo "which python"
-which python
-echo "which python3"
-which python3
+if [ -z "$LOBSTER_PYTHON" ] && [ "$1" = "__LOBSTER_PYTHON__" ]; then
+        shift
+        python_exec=$(resolve_python)
+        exit_on_error $? 171 "Failed to locate a Python interpreter"
+        export LOBSTER_PYTHON=$python_exec
+        set -- "$python_exec" "$@"
+elif [ $# -gt 0 ]; then
+        python_exec=$1
+        if [ ! -x "$python_exec" ] && ! command -v "$python_exec" >/dev/null 2>&1; then
+                python_exec=$(resolve_python)
+                exit_on_error $? 171 "Failed to locate a Python interpreter"
+        else
+                python_exec=$(command -v "$python_exec" 2>/dev/null || echo "$python_exec")
+        fi
+        export LOBSTER_PYTHON=$python_exec
+        shift
+        set -- "$python_exec" "$@"
+else
+        python_exec=$(resolve_python)
+        exit_on_error $? 171 "Failed to locate a Python interpreter"
+        export LOBSTER_PYTHON=$python_exec
+        set -- "$python_exec" "$@"
+fi
 
-echo "ls /usr/bin/python*"
-ls /usr/bin/python*
+echo "Selected Python interpreter: $LOBSTER_PYTHON"
+if [ -n "$LOBSTER_PYTHON" ]; then
+        "$LOBSTER_PYTHON" --version
+fi
+if command -v python3 >/dev/null 2>&1; then
+        echo "python3 --version"
+        python3 --version
+fi
+if command -v python >/dev/null 2>&1; then
+        echo "python --version"
+        python --version
+fi
+if command -v python >/dev/null 2>&1; then
+        echo "which python"
+        command -v python
+fi
+if command -v python3 >/dev/null 2>&1; then
+        echo "which python3"
+        command -v python3
+fi
+
+if ls /usr/bin/python* >/dev/null 2>&1; then
+        echo "ls /usr/bin/python*"
+        ls /usr/bin/python*
+fi
 
 echo ""
 echo "==================="
