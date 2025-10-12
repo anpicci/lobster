@@ -44,9 +44,9 @@ class Cache(object):
 
     def __cachename(self, name, mask):
         m = hashlib.sha256()
-        m.update(name)
+        m.update(name.encode("utf-8"))
         if mask:
-            m.update(mask)
+            m.update(mask.encode("utf-8"))
         return os.path.join(self.cachedir,
                             "{}-{}.pkl".format(name.strip('/').split('/')[0], m.hexdigest()))
 
