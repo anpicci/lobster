@@ -198,6 +198,9 @@ class AdvancedOptions(Configurable):
         xrootd_servers : list
             A list of xrootd servers to use to access remote data.
             Defaults to `cmsxrootd.fnal.gov`.
+        python_interpreter : str
+            Optional path or executable name of the Python interpreter to use
+            on worker nodes.  Defaults to automatic detection.
     """
 
     _mutable = {
@@ -223,7 +226,8 @@ class AdvancedOptions(Configurable):
                  threshold_for_skipping=30,
                  wq_max_retries=10,
                  wq_port=-1,
-                 xrootd_servers=None):
+                 xrootd_servers=None,
+                 python_interpreter=None):
         from lobster import cmssw
 
         self.osg_version = osg_version
@@ -248,3 +252,4 @@ class AdvancedOptions(Configurable):
         self.wq_max_retries = wq_max_retries
         self.wq_port = wq_port
         self.xrootd_servers = xrootd_servers if xrootd_servers else ['cmsxrootd.fnal.gov']
+        self.python_interpreter = python_interpreter
