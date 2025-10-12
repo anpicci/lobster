@@ -81,7 +81,13 @@ class PartiallyMutable(type):
                         'class {} uses {} in the constructor, but does define it as property'.format(name, arg))
         except Exception as e:
             import sys
-            raise type(e)(type(e)('{0!s}: {1}'.format(cls, e.message))).with_traceback(sys.exc_info()[2])
+            message = getattr(e, 'message', None)
+            if message is None:
+                message = str(e)
+            else:
+                message = str(message)
+            formatted = '{0!s}: {1}'.format(cls, message)
+            raise type(e)(type(e)(formatted)).with_traceback(sys.exc_info()[2])
         return res
 
     @classmethod
