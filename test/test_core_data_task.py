@@ -1,9 +1,14 @@
 import importlib.util
+import json
+import logging
 import os
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
+from collections import Counter, defaultdict
+from pathlib import Path
 from string import Template
 
 try:
@@ -138,3 +143,58 @@ def test_fragment_executes_under_supported_pythons(python_executable):
         subprocess.check_call([interpreter, script_path])
     finally:
         os.unlink(script_path)
+
+
+def test_merge_epilogue_uses_resolved_python(tmp_path, monkeypatch):
+    repo_root = Path(__file__).resolve().parents[1]
+    workdir = tmp_path / 'workdir'
+    workdir.mkdir()
+
+    task.logger = logging.getLogger('lobster.test.task')
+    task.logger.setLevel(logging.DEBUG)
+    task.mangler = task.Mangler()
+
+    log_path = tmp_path / 'python2.log'
+    stub_path = tmp_path / 'python2'
+    stub_path.write_text(
+        '#!/bin/sh\n'
+        f'echo "$0 $@" >> {shlex.quote(str(log_path))}\n'
+        f'exec {shlex.quote(sys.executable)} "$@"\n'
+    )
+    stub_path.chmod(0o755)
+
+    merge_script = repo_root / 'lobster' / 'core' / 'data' / 'merge_reports.py'
+    shutil.copyfile(str(merge_script), str(workdir / 'merge_reports.py'))
+
+    template_path = repo_root / 'lobster' / 'core' / 'data' / 'report.json.in'
+    with template_path.open() as fh:
+        data = json.load(fh)
+    data['transfers'] = defaultdict(Counter)
+
+    merge_input = {
+        'files': {
+            'info': {
+                'merged.root': [7, [[1, 1]]]
+            }
+        }
+    }
+    partial_report = workdir / 'partial-report.json'
+    with partial_report.open('w') as fh:
+        json.dump(merge_input, fh)
+        fh.write('\n')
+
+    env = os.environ.copy()
+    env['LOBSTER_PYTHON'] = str(stub_path)
+    config = {
+        'epilogue': ['__LOBSTER_PYTHON__', 'merge_reports.py', 'report.json', partial_report.name]
+    }
+
+    monkeypatch.chdir(workdir)
+    task.run_epilogue(data, config, env)
+
+    assert 'merged.root' in data['files']['info']
+    assert data['files']['info']['merged.root'][0] == 7
+
+    assert log_path.exists()
+    log_contents = log_path.read_text()
+    assert 'merge_reports.py report.json' in log_contents
