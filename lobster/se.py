@@ -3,6 +3,7 @@ import os
 import random
 import re
 import subprocess
+import sys
 import xml.dom.minidom
 
 from contextlib import contextmanager
@@ -249,15 +250,26 @@ class XrootD(StorageElement):
             protocol, server, path = url_re.match(path).groups()
             args = ['xrdfs', server] + cmds + [path]
             try:
-                # p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env={})
-                # pout, err = p.communicate()
-                p = subprocess.run(args, capture_output=True, text=True)
-                if p.returncode != 0 and not kwargs.get('safe', False):
-                    msg = "Failed to execute '{0}':\n{1}\n{2}".format(' '.join(args), err, pout)
-                    raise IOError(msg)
-                output.append(p.stdout)
+                if hasattr(subprocess, 'run') and sys.version_info[0] >= 3:
+                    proc = subprocess.run(args, capture_output=True, text=True)
+                    stdout, stderr, returncode = proc.stdout, proc.stderr, proc.returncode
+                else:
+                    proc = subprocess.Popen(
+                        args,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        universal_newlines=True,
+                    )
+                    stdout, stderr = proc.communicate()
+                    returncode = proc.returncode
             except OSError:
                 raise AttributeError("xrd utilities not available")
+
+            if returncode != 0 and not kwargs.get('safe', False):
+                msg = "Failed to execute '{0}':\n{1}\n{2}".format(' '.join(args), stderr, stdout)
+                raise IOError(msg)
+
+            output.append(stdout)
         return '/n'.join(output)
 
     def exists(self, path):
