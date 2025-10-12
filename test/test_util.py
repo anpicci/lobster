@@ -1,4 +1,7 @@
+import importlib
 import os
+import pipes
+import shlex
 import sys
 import traceback
 
@@ -37,3 +40,26 @@ def test_constructor_exception_message_uses_string_representation():
         _FailingConfig()
 
     assert 'boom' in str(excinfo.value)
+
+
+def test_shell_quote_matches_shlex_quote():
+    value = "foo bar 'baz'"
+    expected = shlex.quote(value)
+
+    assert util.shell_quote(value) == expected
+
+
+def test_shell_quote_falls_back_to_pipes_quote():
+    value = "foo bar"
+    original = getattr(shlex, 'quote', None)
+
+    try:
+        if original is not None:
+            del shlex.quote
+
+        importlib.reload(util)
+        assert util.shell_quote(value) == pipes.quote(value)
+    finally:
+        if original is not None:
+            shlex.quote = original
+        importlib.reload(util)

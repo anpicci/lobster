@@ -4,7 +4,6 @@ import json
 import logging
 import os
 import re
-import shlex
 import shutil
 import socket
 import subprocess
@@ -363,7 +362,7 @@ class TaskProvider(util.Timing):
 
             python_exec = self.config.advanced.python_interpreter or '__LOBSTER_PYTHON__'
             if python_exec != '__LOBSTER_PYTHON__':
-                python_exec = shlex.quote(python_exec)
+                python_exec = util.shell_quote(python_exec)
             cmd = 'sh wrapper.sh {} task.py parameters.json'.format(python_exec)
             env = {
                 'LOBSTER_CVMFS_PROXY': self.__cvmfs_proxy,
