@@ -877,7 +877,13 @@ def run_step(data, config, env, name):
     step = config.get(name, [])
     if step and len(step) > 0:
         logger.info(name)
-        p = run_subprocess(step, env=env)
+        expanded_step = list(step)
+        if expanded_step[0] == '__LOBSTER_PYTHON__':
+            python_exec = env.get('LOBSTER_PYTHON')
+            if not python_exec or python_exec == '__LOBSTER_PYTHON__':
+                python_exec = sys.executable
+            expanded_step[0] = python_exec
+        p = run_subprocess(expanded_step, env=env)
         # Was originally a subprocess.check_call, but this has the
         # potential to confuse log file output because print buffers
         # differently from the underlying process.  Therefore, do what
