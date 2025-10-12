@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import shlex
+import pipes
 import shutil
 import smtplib
 import subprocess
@@ -30,6 +31,21 @@ except ImportError:  # pragma: no cover - optional dependency may be absent
 VERSION = "2.0a1"
 
 logger = logging.getLogger('lobster.util')
+
+
+try:
+    _shell_quote = shlex.quote
+except AttributeError:  # pragma: no cover - Python 2 fallback
+    _shell_quote = pipes.quote
+
+
+def shell_quote(value):
+    """Return a shell-escaped version of *value*.
+
+    Uses :func:`shlex.quote` when available (Python 3) and falls back to
+    :func:`pipes.quote` for Python 2 compatibility.
+    """
+    return _shell_quote(value)
 
 
 class InvertedFilter(logging.Filter):
