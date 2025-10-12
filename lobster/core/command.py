@@ -3,6 +3,8 @@ import glob
 import imp
 import os
 
+from lobster.util import with_metaclass
+
 
 class CommandRegistry(ABCMeta):
 
@@ -25,7 +27,7 @@ class CommandRegistry(ABCMeta):
             parser.set_defaults(plugin=plugin)
 
 
-class Command(object, metaclass=CommandRegistry):
+class Command(with_metaclass(CommandRegistry, object)):
     @abstractproperty
     def help(self):
         pass
