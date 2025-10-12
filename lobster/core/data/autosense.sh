@@ -58,7 +58,7 @@ fi
 
 export LOBSTER_PYTHON=$python_exec
 
-"$python_exec" <<'EOF' > /dev/null 2>&1
+"$python_exec" <<EOF > /dev/null 2>&1
 import imp
 import json
 import shlex
