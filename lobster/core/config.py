@@ -175,9 +175,6 @@ class AdvancedOptions(Configurable):
             practically quiet.
         osg_version : str
             The version of OSG you want lobster to run on.
-        python_interpreter : str
-            Optional path or executable name of the Python interpreter to use
-            on worker nodes.  Defaults to automatic detection.
         payload : int
             How many tasks to keep in the queue (minimum).  Note that the
             payload will increase with the number of cores available to
@@ -201,6 +198,9 @@ class AdvancedOptions(Configurable):
         xrootd_servers : list
             A list of xrootd servers to use to access remote data.
             Defaults to `cmsxrootd.fnal.gov`.
+        python_interpreter : str
+            Optional path or executable name of the Python interpreter to use
+            on worker nodes.  Defaults to automatic detection.
     """
 
     _mutable = {
@@ -220,14 +220,14 @@ class AdvancedOptions(Configurable):
                  full_monitoring=False,
                  log_level=2,
                  osg_version=None,
-                 python_interpreter=None,
                  payload=10,
                  proxy=None,
                  threshold_for_failure=30,
                  threshold_for_skipping=30,
                  wq_max_retries=10,
                  wq_port=-1,
-                 xrootd_servers=None):
+                 xrootd_servers=None,
+                 python_interpreter=None):
         from lobster import cmssw
 
         self.osg_version = osg_version
@@ -247,9 +247,9 @@ class AdvancedOptions(Configurable):
         self.log_level = log_level
         self.payload = payload
         self.proxy = proxy if proxy is not None else cmssw.Proxy()
-        self.python_interpreter = python_interpreter
         self.threshold_for_failure = threshold_for_failure
         self.threshold_for_skipping = threshold_for_skipping
         self.wq_max_retries = wq_max_retries
         self.wq_port = wq_port
         self.xrootd_servers = xrootd_servers if xrootd_servers else ['cmsxrootd.fnal.gov']
+        self.python_interpreter = python_interpreter
