@@ -468,11 +468,27 @@ def get_version():
 
 
 def verify_string(s):
-    try:
-        s.decode('ascii')
-    except (UnicodeDecodeError, AttributeError):
-        return ""
-    return s
+    """Return an ASCII string for *s* or ``""`` if it contains non-ASCII characters.
+
+    ``s`` may be a ``bytes`` object (as returned by Work Queue on Python 2)
+    or a native string.  ``bytes`` inputs are decoded as ASCII, while
+    existing string objects are only validated to contain ASCII data.
+    """
+
+    if isinstance(s, bytes):
+        try:
+            return s.decode('ascii')
+        except UnicodeDecodeError:
+            return ""
+
+    if isinstance(s, str):
+        try:
+            s.encode('ascii')
+        except UnicodeEncodeError:
+            return ""
+        return s
+
+    return ""
 
 
 def ldd(name):

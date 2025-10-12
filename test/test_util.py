@@ -63,3 +63,17 @@ def test_shell_quote_falls_back_to_pipes_quote():
         if original is not None:
             shlex.quote = original
         importlib.reload(util)
+
+
+def test_verify_string_decodes_bytes():
+    assert util.verify_string(b'worker-node') == 'worker-node'
+
+
+def test_verify_string_accepts_ascii_str():
+    assert util.verify_string('worker-node') == 'worker-node'
+
+
+def test_verify_string_rejects_non_ascii():
+    assert util.verify_string('node-\u2603') == ''
+    assert util.verify_string('node-\u00e9') == ''
+    assert util.verify_string(b'node-\xff') == ''
