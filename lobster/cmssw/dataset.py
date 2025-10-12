@@ -9,7 +9,7 @@ from retrying import retry
 import xdg.BaseDirectory
 
 from lobster.core.dataset import DatasetInfo
-from lobster.util import Configurable
+from lobster.util import Configurable, PICKLE_PROTOCOL
 
 from dbs.apis.dbsClient import DbsApi
 from WMCore.Credential.Proxy import Proxy
@@ -53,7 +53,7 @@ class Cache(object):
     def cache(self, name, mask, baseinfo, dataset):
         logger.debug("writing dataset '{}' to cache".format(name))
         with open(self.__cachename(name, mask), 'wb') as fd:
-            pickle.dump((baseinfo, dataset), fd)
+            pickle.dump((baseinfo, dataset), fd, protocol=PICKLE_PROTOCOL)
 
     def cached(self, name, mask, baseinfo):
         try:

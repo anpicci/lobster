@@ -4,7 +4,7 @@ import os
 import pickle
 
 from lobster.core.workflow import Category
-from lobster.util import Configurable
+from lobster.util import Configurable, PICKLE_PROTOCOL
 
 
 class Items(object):
@@ -136,7 +136,7 @@ class Config(Configurable):
 
     def save(self):
         with open(os.path.join(self.workdir, 'config.pkl'), 'wb') as f:
-            pickle.dump(self, f)
+            pickle.dump(self, f, protocol=PICKLE_PROTOCOL)
 
 
 class AdvancedOptions(Configurable):
