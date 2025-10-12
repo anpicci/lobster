@@ -8,7 +8,8 @@
 # If optional packages are needed, they should be included in the function
 # scope.
 import collections
-collections.MutableSequence = collections.abc.MutableSequence  # workaround for python 3.10
+if hasattr(collections, 'abc') and not hasattr(collections, 'MutableSequence'):
+    collections.MutableSequence = collections.abc.MutableSequence  # workaround for python 3.10
 import inspect
 import json
 import logging
@@ -21,7 +22,10 @@ import time
 import math
 from contextlib import contextmanager
 from email.mime.text import MIMEText
-from pkg_resources import get_distribution
+try:
+    from pkg_resources import get_distribution
+except ImportError:  # pragma: no cover - optional dependency may be absent
+    get_distribution = None
 
 VERSION = "2.0a1"
 
@@ -98,7 +102,25 @@ class PartiallyMutable(type):
         cls._actions.clear()
 
 
-class Configurable(object, metaclass=PartiallyMutable):
+def with_metaclass(meta, *bases):
+    if not bases:
+        bases = (object,)
+
+    class TemporaryMeta(meta):
+
+        def __new__(cls, name, this_bases, attrs):
+            if this_bases is None:
+                return type.__new__(cls, name, (), attrs)
+            return meta.__new__(cls, name, bases, attrs)
+
+        def __init__(cls, name, this_bases, attrs):
+            if this_bases is not None:
+                meta.__init__(cls, name, bases, attrs)
+
+    return TemporaryMeta('temporary_class', None, {})
+
+
+class Configurable(with_metaclass(PartiallyMutable, object)):
 
     """Partially mutable base object.
 
@@ -401,7 +423,7 @@ def sendemail(emailmsg, config):
 
 def get_version():
     # https://peps.python.org/pep-0440/
-    if 'site-packages' in __file__:
+    if 'site-packages' in __file__ and get_distribution is not None:
         version = get_distribution('Lobster').version
     else:
         start = os.getcwd()
@@ -418,6 +440,8 @@ def get_version():
             version = VERSION
         finally:
             os.chdir(start)
+        if 'site-packages' in __file__ and get_distribution is None:
+            version = VERSION
     return version
 
 
