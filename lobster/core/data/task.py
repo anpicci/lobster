@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from datetime import datetime
 import atexit
 import gzip
+import io
 import json
 import logging
 import os
@@ -930,10 +931,10 @@ def write_report(data):
 def write_zipfiles(data):
     filename = 'report.xml'
     if os.path.exists(filename):
-        with open(filename) as f:
-            zipf = gzip.open(filename + ".gz", "wb")
-            zipf.writelines(f)
-            zipf.close()
+        with io.open(filename, 'r', encoding='utf-8') as f:
+            with gzip.open(filename + ".gz", "wb") as zipf:
+                for line in f:
+                    zipf.write(line.encode('utf-8'))
 
 
 if __name__ == '__main__':
