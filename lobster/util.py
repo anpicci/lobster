@@ -146,18 +146,34 @@ def with_metaclass(meta, *bases):
     if not bases:
         bases = (object,)
 
+    placeholder = [None]
+
     class TemporaryMeta(meta):
 
         def __new__(cls, name, this_bases, attrs):
             if this_bases is None:
                 return type.__new__(cls, name, (), attrs)
-            return meta.__new__(cls, name, bases, attrs)
+
+            actual_bases = []
+            for base in this_bases:
+                if placeholder[0] is not None and base is placeholder[0]:
+                    actual_bases.extend(bases)
+                else:
+                    actual_bases.append(base)
+            return meta.__new__(cls, name, tuple(actual_bases), attrs)
 
         def __init__(cls, name, this_bases, attrs):
             if this_bases is not None:
-                meta.__init__(cls, name, bases, attrs)
+                actual_bases = []
+                for base in this_bases:
+                    if placeholder[0] is not None and base is placeholder[0]:
+                        actual_bases.extend(bases)
+                    else:
+                        actual_bases.append(base)
+                meta.__init__(cls, name, tuple(actual_bases), attrs)
 
-    return TemporaryMeta('temporary_class', None, {})
+    placeholder[0] = TemporaryMeta('temporary_class', None, {})
+    return placeholder[0]
 
 
 class _ConfigurableBase(object):
