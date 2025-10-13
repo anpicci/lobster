@@ -42,6 +42,13 @@ def test_constructor_exception_message_uses_string_representation():
     assert 'boom' in str(excinfo.value)
 
 
+def test_constructor_exception_preserves_type():
+    with pytest.raises(ValueError) as excinfo:
+        _FailingConfig()
+
+    assert type(excinfo.value) is ValueError
+
+
 def test_shell_quote_matches_shlex_quote():
     value = "foo bar 'baz'"
     expected = shlex.quote(value)

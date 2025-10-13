@@ -19,6 +19,7 @@ import pipes
 import shutil
 import smtplib
 import subprocess
+import sys
 import time
 import math
 from contextlib import contextmanager
@@ -55,6 +56,20 @@ class InvertedFilter(logging.Filter):
 
     def filter(self, record):
         return not logging.Filter.filter(self, record)
+
+
+if sys.version_info[0] >= 3:
+
+    def _raise_with_traceback(exc, tb):
+        """Re-raise *exc* with the provided traceback in a Python 2/3 compatible way."""
+        raise exc.with_traceback(tb)
+
+else:  # pragma: no cover - only exercised on Python 2
+    exec(
+        "def _raise_with_traceback(exc, tb):\n"
+        "    'Re-raise *exc* with the provided traceback in a Python 2/3 compatible way.'\n"
+        "    raise type(exc), exc, tb\n"
+    )
 
 
 class PartiallyMutable(type):
@@ -106,7 +121,7 @@ class PartiallyMutable(type):
             else:
                 message = str(message)
             formatted = '{0!s}: {1}'.format(cls, message)
-            raise type(e)(type(e)(formatted)).with_traceback(sys.exc_info()[2])
+            _raise_with_traceback(type(e)(type(e)(formatted)), sys.exc_info()[2])
         return res
 
     @classmethod
