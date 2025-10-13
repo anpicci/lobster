@@ -198,3 +198,118 @@ def test_merge_epilogue_uses_resolved_python(tmp_path, monkeypatch):
     assert log_path.exists()
     log_contents = log_path.read_text()
     assert 'merge_reports.py report.json' in log_contents
+
+
+@pytest.mark.parametrize('python_executable', ['python2', 'python3'])
+def test_write_zipfiles_emits_valid_gzip(tmp_path, python_executable):
+    interpreter = shutil.which(python_executable)
+    if interpreter is None:
+        pytest.skip('{} not available'.format(python_executable))
+
+    repo_root = Path(__file__).resolve().parents[1]
+    module_path = repo_root / 'lobster' / 'core' / 'data' / 'task.py'
+
+    script_template = Template(
+        """import gzip
+import io
+import os
+import sys
+import types
+
+try:
+    import importlib.util as _import_util
+except ImportError:
+    _import_util = None
+
+root_mod = types.ModuleType('ROOT')
+
+
+class _GRoot(object):
+
+    def SetBatch(self, *args, **kwargs):
+        pass
+
+
+root_mod.gROOT = _GRoot()
+
+
+class _PyConfig(object):
+
+    def __init__(self):
+        self.IgnoreCommandLineOptions = False
+
+
+root_mod.PyConfig = _PyConfig()
+root_mod.kError = 0
+
+
+class _TFile(object):
+    pass
+
+
+root_mod.TFile = _TFile
+
+sys.modules['ROOT'] = root_mod
+
+wmcore_mod = types.ModuleType('WMCore')
+sys.modules['WMCore'] = wmcore_mod
+
+wmcore_datastructs = types.ModuleType('WMCore.DataStructs')
+sys.modules['WMCore.DataStructs'] = wmcore_datastructs
+wmcore_mod.DataStructs = wmcore_datastructs
+
+lumi_mod = types.ModuleType('WMCore.DataStructs.LumiList')
+
+
+class _LumiList(object):
+    pass
+
+
+lumi_mod.LumiList = _LumiList
+sys.modules['WMCore.DataStructs.LumiList'] = lumi_mod
+wmcore_datastructs.LumiList = lumi_mod
+
+fwk_mod = types.ModuleType('WMCore.FwkJobReport')
+sys.modules['WMCore.FwkJobReport'] = fwk_mod
+
+report_mod = types.ModuleType('WMCore.FwkJobReport.Report')
+
+
+class _Report(object):
+    pass
+
+
+report_mod.Report = _Report
+sys.modules['WMCore.FwkJobReport.Report'] = report_mod
+fwk_mod.Report = report_mod
+
+if _import_util is not None:
+    spec = _import_util.spec_from_file_location('lobster.core.data.task', $module_path)
+    module = _import_util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+else:
+    import imp
+    module = imp.load_source('lobster.core.data.task', $module_path)
+
+with io.open('report.xml', 'w', encoding='utf-8') as fh:
+    fh.write(u'<report>✓</report>\\n')
+
+module.write_zipfiles({})
+
+if not os.path.exists('report.xml.gz'):
+    raise SystemExit(1)
+
+with gzip.open('report.xml.gz', 'rb') as fh:
+    contents = fh.read()
+
+expected = u'<report>✓</report>\\n'.encode('utf-8')
+if contents != expected:
+    raise SystemExit(2)
+"""
+    )
+
+    script = script_template.substitute(module_path=repr(str(module_path)))
+    script_path = tmp_path / 'write_zipfiles.py'
+    script_path.write_text(script)
+
+    subprocess.check_call([interpreter, str(script_path)], cwd=str(tmp_path))
