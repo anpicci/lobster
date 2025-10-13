@@ -359,7 +359,8 @@ class Workflow(Configurable):
             cmd = ['env', '-i', os.path.join(os.path.dirname(__file__), 'data', 'autosense.sh')]
             args = [reldir, os.path.join(self.workdir, os.path.basename(self.pset))] + self.arguments
             try:
-                result = json.loads(subprocess.check_output(cmd + args))
+                output = subprocess.check_output(cmd + args, universal_newlines=True)
+                result = json.loads(output)
                 if autoOutputs:
                     self.outputs = result['outputs']
                     self.merge_command = result.get('merge_command', self.merge_command)
@@ -367,10 +368,14 @@ class Workflow(Configurable):
                 if autoGlobalTag:
                     self.globaltag = result.get('globaltag', self.globaltag)
                 return
-            except:
+            except subprocess.CalledProcessError as exc:
+                output = exc.output
+                if isinstance(output, bytes):
+                    output = output.decode('utf-8', 'replace')
+                logger.info("autosense failed for release %s: %s", release, output)
+            except Exception:
                 e = sys.exc_info()[0:2]
-                logger.info(e)
-                pass
+                logger.info("autosense exception for release %s: %s", release, ' '.join(map(str, e)))
         else:
             raise RuntimeError("failed to autosense output files and/or global tag")
 
