@@ -77,3 +77,28 @@ def test_verify_string_rejects_non_ascii():
     assert util.verify_string('node-\u2603') == ''
     assert util.verify_string('node-\u00e9') == ''
     assert util.verify_string(b'node-\xff') == ''
+
+
+def test_ldd_parses_ssl_libraries(monkeypatch):
+    fake_output = (
+        b"libssl.so.1.1 => /lib/libssl.so.1.1 (0x00007f)\n"
+        b"libcrypto.so.1.1 => /lib/libcrypto.so.1.1 (0x00007f)\n"
+        b"linux-vdso.so.1 =>  (0x00007f)\n"
+    )
+
+    class DummyPopen(object):
+        def __init__(self, cmd, env=None, stdout=None):
+            self.cmd = cmd
+            self.env = env
+            self.stdout = stdout
+
+        def communicate(self):
+            return fake_output, b''
+
+    monkeypatch.setattr(util, 'which', lambda name: '/usr/bin/{}'.format(name))
+    monkeypatch.setattr(util.subprocess, 'Popen', DummyPopen)
+
+    libs = util.ldd('python')
+
+    assert libs == ['/lib/libssl.so.1.1', '/lib/libcrypto.so.1.1']
+    assert all(isinstance(lib, type('')) for lib in libs)

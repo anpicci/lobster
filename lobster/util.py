@@ -520,6 +520,9 @@ def ldd(name):
     out, err = p.communicate()
 
     for line in out.splitlines():
+        if not isinstance(line, str):
+            line = line.decode('utf-8', 'ignore')
+
         fields = line.split()
 
         if len(fields) < 3 or fields[1] != "=>":
