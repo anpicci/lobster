@@ -57,6 +57,14 @@ class InvertedFilter(logging.Filter):
         return not logging.Filter.filter(self, record)
 
 
+def _raise_with_traceback(exc, tb):
+    """Re-raise *exc* with the provided traceback in a Python 2/3 compatible way."""
+    if hasattr(exc, 'with_traceback'):
+        raise exc.with_traceback(tb)
+    else:  # pragma: no cover - only exercised on Python 2
+        exec("raise type_, value, tb", {'type_': type(exc), 'value': exc, 'tb': tb})
+
+
 class PartiallyMutable(type):
 
     """Support metaclass for partially mutable base object.
@@ -106,7 +114,7 @@ class PartiallyMutable(type):
             else:
                 message = str(message)
             formatted = '{0!s}: {1}'.format(cls, message)
-            raise type(e)(type(e)(formatted)).with_traceback(sys.exc_info()[2])
+            _raise_with_traceback(type(e)(type(e)(formatted)), sys.exc_info()[2])
         return res
 
     @classmethod
