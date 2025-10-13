@@ -160,7 +160,7 @@ def with_metaclass(meta, *bases):
     return TemporaryMeta('temporary_class', None, {})
 
 
-class Configurable(with_metaclass(PartiallyMutable, object)):
+class _ConfigurableBase(object):
 
     """Partially mutable base object.
 
@@ -172,13 +172,14 @@ class Configurable(with_metaclass(PartiallyMutable, object)):
     passed, and a bool indicating if the changed object should be appended
     to the arguments.
     """
+
     _mutable = {}
 
     def __setattr__(self, attr, value):
         if not getattr(self, '_constructed', False):
-            super(Configurable, self).__setattr__(attr, value)
+            super(_ConfigurableBase, self).__setattr__(attr, value)
         elif attr in self._mutable or not getattr(PartiallyMutable, '_fixed', True):
-            super(Configurable, self).__setattr__(attr, value)
+            super(_ConfigurableBase, self).__setattr__(attr, value)
             if attr in self._mutable and getattr(PartiallyMutable, '_fixed', True):
                 method, args, append = self._mutable[attr]
                 # force a copy of the list into a tuple (for the actions,
@@ -238,7 +239,7 @@ class Configurable(with_metaclass(PartiallyMutable, object)):
             our_original = self.__kwargs.get(arg, None)
             theirs = getattr(other, arg)
 
-            if isinstance(ours, Configurable):
+            if isinstance(ours, _ConfigurableBase):
                 ours.update(theirs)
             elif hasattr(ours, '__iter__') or hasattr(theirs, '__iter__'):
                 # protect against empty default lists
@@ -272,7 +273,7 @@ class Configurable(with_metaclass(PartiallyMutable, object)):
                     if hasattr(ours[n], '__iter__'):
                         logger.error("nested list in attribute '{}' not supported".format(arg))
                         continue
-                    elif isinstance(ours[n], Configurable):
+                    elif isinstance(ours[n], _ConfigurableBase):
                         ours[n].update(theirs[n])
                     elif ours[n] != theirs[n]:
                         if our_original != theirs and arg not in self._mutable:
@@ -291,6 +292,16 @@ class Configurable(with_metaclass(PartiallyMutable, object)):
                 logger.info(
                     "updating attribute '{}' with value '{}' (old: '{}')".format(arg, theirs, ours))
                 setattr(self, arg, theirs)
+
+
+class Configurable(with_metaclass(PartiallyMutable, _ConfigurableBase)):
+
+    """Partially mutable base object."""
+
+    _mutable = {}
+
+
+Configurable.__doc__ = _ConfigurableBase.__doc__
 
 
 def record(cls, *fields, **defaults):
