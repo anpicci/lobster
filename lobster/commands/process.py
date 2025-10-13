@@ -1,6 +1,7 @@
 import daemon
 import datetime
 import inspect
+import io
 import logging
 import logging.handlers
 import os
@@ -134,19 +135,91 @@ class Process(Command, util.Timing):
         signals[signal.SIGTERM] = localkill
 
         process = psutil.Process()
-        preserved = [f.name for f in args.preserve]
-        preserved += [os.path.realpath(os.path.abspath(f)) for f in preserved]
-        openfiles = [f for f in process.open_files() if f.path not in preserved]
+
+        def _path_variants(path):
+            variants = []
+
+            def _add(candidate):
+                if candidate and candidate not in variants:
+                    variants.append(candidate)
+
+            _add(path)
+            try:
+                _add(os.path.abspath(path))
+            except (TypeError, ValueError, OSError):
+                pass
+            try:
+                _add(os.path.realpath(os.path.abspath(path)))
+            except (TypeError, ValueError, OSError):
+                pass
+            return variants
+
+        preserved_paths = set()
+        preserved_fds = set()
+
+        def _register_preserve(entry):
+            if isinstance(entry, int):
+                if entry >= 0:
+                    preserved_fds.add(entry)
+                return
+
+            name = getattr(entry, 'name', None)
+            for candidate in _path_variants(name):
+                preserved_paths.add(candidate)
+
+            try:
+                fileno = entry.fileno()
+            except (AttributeError, ValueError, io.UnsupportedOperation):
+                fileno = None
+            if fileno is not None and fileno >= 0:
+                preserved_fds.add(fileno)
+
+        for entry in args.preserve:
+            _register_preserve(entry)
+
+        openfiles = process.open_files()
         openconns = process.connections()
 
         for c in openconns:
             logger.debug("open connection: {}".format(c))
-            args.preserve.append(c.fd)
+            fd = getattr(c, 'fd', None)
+            if fd is None or fd < 0 or fd in preserved_fds:
+                continue
+            args.preserve.append(fd)
+            preserved_fds.add(fd)
 
-        if len(openfiles) > 0:
+        unexpected = []
+        unhandled = []
+
+        for f in openfiles:
+            candidates = _path_variants(getattr(f, 'path', None))
+            if any(candidate in preserved_paths for candidate in candidates):
+                continue
+
+            fd = getattr(f, 'fd', None)
+            if fd is not None and fd in preserved_fds:
+                continue
+
+            if fd is None or fd < 0:
+                unhandled.append((f, candidates))
+            else:
+                unexpected.append((f, candidates))
+
+        for f, candidates in unexpected:
+            fd = getattr(f, 'fd', None)
+            display_path = getattr(f, 'path', None) or next((c for c in candidates if c), "<unknown>")
+            logger.warning("preserving unexpected open file: %s (fd=%s)", display_path, fd)
+            if fd not in preserved_fds:
+                args.preserve.append(fd)
+                preserved_fds.add(fd)
+            for candidate in candidates:
+                preserved_paths.add(candidate)
+
+        if unhandled:
             logger.error("cannot daemonize due to open files")
-            for f in openfiles:
-                logger.error("open file: {}".format(f.path))
+            for f, candidates in unhandled:
+                display_path = getattr(f, 'path', None) or next((c for c in candidates if c), "<unknown>")
+                logger.error("open file: {}".format(display_path))
             raise RuntimeError("open files or connections")
 
         with daemon.DaemonContext(
