@@ -1,7 +1,8 @@
-from collections import defaultdict
 import fnmatch
 import math
 import os
+import logging
+from collections import defaultdict
 
 from lobster import fs
 from lobster.util import Configurable
@@ -10,6 +11,9 @@ __all__ = [
     'Dataset', 'EmptyDataset', 'ParentDataset', 'ProductionDataset',
     'MultiGridpackDataset', 'ParentMultiGridpackDataset', 'MultiProductionDataset'
 ]
+
+
+logger = logging.getLogger(__name__)
 
 
 def flatten(files, matches=None):
@@ -41,9 +45,39 @@ def flatten(files, matches=None):
         files = [files]
     for entry in files:
         entry = os.path.expanduser(entry)
-        if fs.isdir(entry):
-            res.extend(fs.ls(entry))
-        elif fs.isfile(entry):
+        fallback_entry = True
+
+        try:
+            is_dir = fs.isdir(entry)
+        except (AttributeError, IOError):
+            is_dir = False
+
+        if is_dir:
+            try:
+                res.extend(fs.ls(entry))
+                fallback_entry = False
+                continue
+            except (AttributeError, IOError):
+                pass
+
+        try:
+            is_file = fs.isfile(entry)
+        except (AttributeError, IOError):
+            is_file = False
+
+        if is_file:
+            res.append(entry)
+            fallback_entry = False
+            continue
+
+        if matches and not matchfn(entry):
+            fallback_entry = False
+            continue
+
+        if fallback_entry:
+            logger.warning(
+                "Falling back to trusting dataset entry '%s'; storage probe could not confirm availability.",
+                entry)
             res.append(entry)
     if matches:
         return [fn for fn in res if matchfn(fn)]
@@ -112,7 +146,7 @@ class Dataset(Configurable):
         dset = DatasetInfo()
         dset.file_based = True
 
-        files = flatten(self.files, self.patterns)
+        files = [str(fn) for fn in flatten(self.files, self.patterns)]
         dset.tasksize = self.files_per_task
         dset.total_units = len(files)
         self.total_units = len(files)
