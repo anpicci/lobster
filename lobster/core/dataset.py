@@ -41,6 +41,23 @@ def flatten(files, matches=None):
                 return True
         return False
     res = []
+
+    def should_trust_entry_on_exception(entry, exc):
+        if isinstance(exc, AttributeError):
+            message = str(exc).lower()
+            if 'does not exist' in message or 'no such file' in message:
+                return False
+            return True
+        if isinstance(exc, IOError):
+            try:
+                exists = fs.exists(entry)
+            except (AttributeError, IOError):
+                return True
+            if not exists:
+                return False
+            return True
+        return False
+
     if not isinstance(files, list):
         files = [files]
     for entry in files:
@@ -49,9 +66,10 @@ def flatten(files, matches=None):
 
         try:
             is_dir = fs.isdir(entry)
-        except (AttributeError, IOError):
+        except (AttributeError, IOError) as exc:
             is_dir = False
-            probe_failed = True
+            if should_trust_entry_on_exception(entry, exc):
+                probe_failed = True
 
         if is_dir:
             try:
@@ -62,9 +80,10 @@ def flatten(files, matches=None):
 
         try:
             is_file = fs.isfile(entry)
-        except (AttributeError, IOError):
+        except (AttributeError, IOError) as exc:
             is_file = False
-            probe_failed = True
+            if should_trust_entry_on_exception(entry, exc):
+                probe_failed = True
 
         if is_file:
             res.append(entry)

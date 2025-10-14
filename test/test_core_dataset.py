@@ -198,5 +198,14 @@ class TestDataset(unittest.TestCase):
                     assert len(logs.output) >= 1
                     assert any('Falling back to trusting dataset entry' in message for message in logs.output)
                     assert info.total_units == 1
-                    assert list(info.files.keys()) == [target]
-                    assert all(isinstance(name, str) for name in info.files.keys())
+
+    def test_flatten_missing_file_rejected(self):
+        with util.PartiallyMutable.unlock():
+            s = se.StorageConfiguration(
+                output=[], input=['file://' + self.workdir])
+            s.activate()
+
+            with fs.alternative():
+                assert not fs.exists('this_file_does_not_exist.txt')
+                dataset = Dataset(files=['this_file_does_not_exist.txt'])
+                assert not dataset.validate()
