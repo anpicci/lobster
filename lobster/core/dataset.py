@@ -45,36 +45,35 @@ def flatten(files, matches=None):
         files = [files]
     for entry in files:
         entry = os.path.expanduser(entry)
-        fallback_entry = True
+        probe_failed = False
 
         try:
             is_dir = fs.isdir(entry)
         except (AttributeError, IOError):
             is_dir = False
+            probe_failed = True
 
         if is_dir:
             try:
                 res.extend(fs.ls(entry))
-                fallback_entry = False
                 continue
             except (AttributeError, IOError):
-                pass
+                probe_failed = True
 
         try:
             is_file = fs.isfile(entry)
         except (AttributeError, IOError):
             is_file = False
+            probe_failed = True
 
         if is_file:
             res.append(entry)
-            fallback_entry = False
             continue
 
         if matches and not matchfn(entry):
-            fallback_entry = False
             continue
 
-        if fallback_entry:
+        if probe_failed:
             logger.warning(
                 "Falling back to trusting dataset entry '%s'; storage probe could not confirm availability.",
                 entry)
