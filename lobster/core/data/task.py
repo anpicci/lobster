@@ -924,10 +924,9 @@ def write_report(data):
 def write_zipfiles(data):
     filename = 'report.xml'
     if os.path.exists(filename):
-        with open(filename) as f:
-            zipf = gzip.open(filename + ".gz", "wb")
-            zipf.writelines(f)
-            zipf.close()
+        out_path = filename + '.gz'
+        with open(filename, 'rb') as fin, gzip.open(out_path, 'wb') as fout:
+            shutil.copyfileobj(fin, fout)
 
 
 if __name__ == '__main__':
