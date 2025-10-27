@@ -17,6 +17,7 @@ from lobster.core.command import Command
 from lobster.core.source import TaskProvider
 
 import work_queue as wq
+print('\n\n\nUsing WQ version:', wq.__version__, '\n\n\n')
 
 logger = logging.getLogger('lobster.core')
 
