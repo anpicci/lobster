@@ -137,7 +137,7 @@ class Process(Command, util.Timing):
         process = psutil.Process()
         preserved = [f.name for f in args.preserve]
         preserved += [os.path.realpath(os.path.abspath(f)) for f in preserved]
-        openfiles = [f for f in process.open_files() if f.path not in preserved]
+        openfiles = [f for f in process.open_files() if f.path not in preserved and "vscode" not in f.path]
         openconns = process.connections()
 
         for c in openconns:
@@ -148,7 +148,7 @@ class Process(Command, util.Timing):
             logger.error("cannot daemonize due to open files")
             for f in openfiles:
                 logger.error("open file: {}".format(f.path))
-            raise RuntimeError("open files or connections")
+            raise RuntimeError(f"open files or connections {f.path}")
 
         with daemon.DaemonContext(
                 detach_process=not args.foreground,

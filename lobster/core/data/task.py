@@ -159,19 +159,27 @@ def find_xrootd_server(filename):
 
 
 def run_subprocess(*args, **kwargs):
-    logger.info("executing '{}'".format(" ".join(*args)))
+    # Normalize *args into a flat list of strings
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        raw_cmd = list(args[0])     # e.g. run_subprocess(cmd_list)
+    else:
+        raw_cmd = list(args)        # e.g. run_subprocess("python3", "skim.py", ...)
+
+    # Remove single quotes from each element
+    cmd = [str(x).replace("'", "") for x in raw_cmd]
+
+    logger.info("executing '%s'", " ".join(cmd))
 
     retry = kwargs.pop('retry', {})
     capture = kwargs.pop('capture', False)
 
     outfd, outfn = tempfile.mkstemp()
-
-    logger.debug("using {} to store command output".format(outfn))
+    logger.debug("using %s to store command output", outfn)
 
     with open(outfn, 'wb') as out:
         kwargs['stdout'] = out
         kwargs['stderr'] = subprocess.STDOUT
-        p = subprocess.Popen(*args, **kwargs)
+        p = subprocess.Popen(cmd, **kwargs)
 
     _, _ = p.communicate()
 
