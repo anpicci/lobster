@@ -158,6 +158,14 @@ def find_xrootd_server(filename):
         return e.attributes["result"].value.replace('$1', m.group(1)).replace(fakepath, '')
 
 
+def find_xrootd_server_from_siteconf(siteconf_dir):
+    """Find the leading XRootD server in a siteconf directory."""
+    storage_xml = os.path.join(siteconf_dir, 'PhEDEx', 'storage.xml')
+    if not os.path.exists(storage_xml):
+        return None
+    return find_xrootd_server(storage_xml)
+
+
 def run_subprocess(*args, **kwargs):
     logger.info("executing '{}'".format(" ".join(*args)))
 
@@ -386,7 +394,16 @@ def copy_inputs(data, config, env):
     fast_track = False
     successes = defaultdict(int)
 
-    default_xrootd_server = find_xrootd_server('/cvmfs/cms.cern.ch/SITECONF/local/PhEDEx/storage.xml')
+    default_xrootd_server = None
+    cms_local_site = os.environ.get('CMS_LOCAL_SITE')
+    if cms_local_site:
+        default_xrootd_server = find_xrootd_server_from_siteconf(cms_local_site)
+
+    if not default_xrootd_server:
+        default_xrootd_server = find_xrootd_server_from_siteconf(os.path.join(os.getcwd(), 'siteconf'))
+
+    if not default_xrootd_server:
+        default_xrootd_server = find_xrootd_server('/cvmfs/cms.cern.ch/SITECONF/local/PhEDEx/storage.xml')
 
     for file in files:
         # If the file has been transferred by WQ, there's no need to
