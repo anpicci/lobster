@@ -72,7 +72,7 @@ class Sandbox(lobster.core.Sandbox):
             candidates = glob.glob('{}/.SCRAM/el*'.format(dirname))
             
         if len(candidates) != 1:
-            raise AttributeError("Can't determine SCRAM arch!")
+            raise AttributeError("Can't determine SCRAM arch! in {0}".format(dirname))
         return os.path.basename(candidates[0])
 
     def _get_cmssw_version(self, dirname):
