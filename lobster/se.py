@@ -420,8 +420,6 @@ class StorageConfiguration(Configurable):
                 self.expand_site(os.path.expanduser(os.path.expandvars(i))) for i in input]
         self.output = [self.expand_site(os.path.expanduser(os.path.expandvars(o))) for o in output]
 
-        print("StorageConfiguration: input = ", self.input)
-
         self.use_work_queue_for_inputs = use_work_queue_for_inputs
         self.use_work_queue_for_outputs = use_work_queue_for_outputs
 
