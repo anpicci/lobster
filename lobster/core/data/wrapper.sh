@@ -49,6 +49,10 @@ else
 	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:lib
 fi
 
+if [ -d "$PWD/siteconf" ] && [ -z "$CMS_LOCAL_SITE" ]; then
+	export CMS_LOCAL_SITE="$PWD/siteconf"
+fi
+
 if [ "x$PARROT_ENABLED" != "x" ]; then
 	log "using parrot"
 elif [ ! \( -f "/cvmfs/cms.cern.ch/cmsset_default.sh" \
