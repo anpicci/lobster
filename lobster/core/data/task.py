@@ -158,20 +158,36 @@ def find_xrootd_server(filename):
         return e.attributes["result"].value.replace('$1', m.group(1)).replace(fakepath, '')
 
 
+def find_xrootd_server_from_siteconf(siteconf_dir):
+    """Find the leading XRootD server in a siteconf directory."""
+    storage_xml = os.path.join(siteconf_dir, 'PhEDEx', 'storage.xml')
+    if not os.path.exists(storage_xml):
+        return None
+    return find_xrootd_server(storage_xml)
+
+
 def run_subprocess(*args, **kwargs):
-    logger.info("executing '{}'".format(" ".join(*args)))
+    # Normalize *args into a flat list of strings
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        raw_cmd = list(args[0])     # e.g. run_subprocess(cmd_list)
+    else:
+        raw_cmd = list(args)        # e.g. run_subprocess("python3", "skim.py", ...)
+
+    # Remove single quotes from each element
+    cmd = [str(x).replace("'", "") for x in raw_cmd]
+
+    logger.info("executing '%s'", " ".join(cmd))
 
     retry = kwargs.pop('retry', {})
     capture = kwargs.pop('capture', False)
 
     outfd, outfn = tempfile.mkstemp()
-
-    logger.debug("using {} to store command output".format(outfn))
+    logger.debug("using %s to store command output", outfn)
 
     with open(outfn, 'wb') as out:
         kwargs['stdout'] = out
         kwargs['stderr'] = subprocess.STDOUT
-        p = subprocess.Popen(*args, **kwargs)
+        p = subprocess.Popen(cmd, **kwargs)
 
     _, _ = p.communicate()
 
@@ -386,7 +402,16 @@ def copy_inputs(data, config, env):
     fast_track = False
     successes = defaultdict(int)
 
-    default_xrootd_server = find_xrootd_server('/cvmfs/cms.cern.ch/SITECONF/local/PhEDEx/storage.xml')
+    default_xrootd_server = None
+    cms_local_site = os.environ.get('CMS_LOCAL_SITE')
+    if cms_local_site:
+        default_xrootd_server = find_xrootd_server_from_siteconf(cms_local_site)
+
+    if not default_xrootd_server:
+        default_xrootd_server = find_xrootd_server_from_siteconf(os.path.join(os.getcwd(), 'siteconf'))
+
+    if not default_xrootd_server:
+        default_xrootd_server = find_xrootd_server('/cvmfs/cms.cern.ch/SITECONF/local/PhEDEx/storage.xml')
 
     for file in files:
         # If the file has been transferred by WQ, there's no need to
