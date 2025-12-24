@@ -72,7 +72,7 @@ class Sandbox(lobster.core.Sandbox):
             candidates = glob.glob('{}/.SCRAM/el*'.format(dirname))
             
         if len(candidates) != 1:
-            raise AttributeError("Can't determine SCRAM arch!")
+            raise AttributeError("Can't determine SCRAM arch! in {0}".format(dirname))
         return os.path.basename(candidates[0])
 
     def _get_cmssw_version(self, dirname):
@@ -107,7 +107,7 @@ class Sandbox(lobster.core.Sandbox):
         tarball = tarfile.open(outfile, "w|bz2")
 
         # package bin, etc
-        subdirs = ['bin', 'cfipython', 'external', 'lib', 'python']
+        subdirs = ['bin', 'cfipython', 'external', 'lib', 'python', 'biglib']
         subdirs += [os.path.join('src', incl) for incl in self.include]
 
         for (path, dirs, files) in os.walk(os.path.join(indir, 'src')):

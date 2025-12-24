@@ -219,9 +219,12 @@ class Workflow(Configurable):
                  local=False,
                  globaltag=None,
                  merge_command='cmsRun'):
+        
         self.label = label
+        print(f"Creating workflow with label: {label}")
         if not re.match(r'^[A-Za-z][A-Za-z0-9_]*$', label):
             raise ValueError("Workflow label contains illegal characters: {}".format(label))
+        
         self.category = category
         self.dataset = dataset
 
@@ -254,6 +257,8 @@ class Workflow(Configurable):
         self.local = local or hasattr(dataset, 'files')
         self.merge_args = shlex.split(merge_command)
         self.merge_command = self.merge_args.pop(0)
+
+        print(f"Creating workflow with dataset: {self.dataset}")
 
         if sandbox is None:
             raise ValueError("sandbox should not be None")
