@@ -169,10 +169,12 @@ def find_xrootd_server_from_siteconf(siteconf_dir):
 def join_xrootd_path(prefix, lfn):
     """Join an xrootd server prefix and LFN into a valid PFN.
 
-    `lfn` typically starts with `/store/...`; `os.path.join` would drop the
-    `root://...` prefix in that case, so we normalize manually.
+    Keep an existing trailing slash in `prefix` so absolute LFNs become
+    `root://host//store/...` (xrootd absolute-path form).
     """
-    return prefix.rstrip('/') + '/' + lfn.lstrip('/')
+    if prefix.endswith('/'):
+        return prefix + lfn.lstrip('/')
+    return prefix + '/' + lfn.lstrip('/')
 
 
 def run_subprocess(*args, **kwargs):

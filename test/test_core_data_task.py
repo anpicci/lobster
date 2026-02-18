@@ -32,4 +32,11 @@ class TestXRootDPathJoin(object):
         assert task.join_xrootd_path(
             'root://cmsxrootd.crc.nd.edu//',
             '/store/mc/file.root'
+        ) == 'root://cmsxrootd.crc.nd.edu//store/mc/file.root'
+
+
+    def test_join_xrootd_path_without_trailing_slash(self):
+        assert task.join_xrootd_path(
+            'root://cmsxrootd.crc.nd.edu',
+            '/store/mc/file.root'
         ) == 'root://cmsxrootd.crc.nd.edu/store/mc/file.root'
