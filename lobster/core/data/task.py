@@ -166,6 +166,15 @@ def find_xrootd_server_from_siteconf(siteconf_dir):
     return find_xrootd_server(storage_xml)
 
 
+def join_xrootd_path(prefix, lfn):
+    """Join an xrootd server prefix and LFN into a valid PFN.
+
+    `lfn` typically starts with `/store/...`; `os.path.join` would drop the
+    `root://...` prefix in that case, so we normalize manually.
+    """
+    return prefix.rstrip('/') + '/' + lfn.lstrip('/')
+
+
 def run_subprocess(*args, **kwargs):
     # Normalize *args into a flat list of strings
     if len(args) == 1 and isinstance(args[0], (list, tuple)):
@@ -499,7 +508,7 @@ def copy_inputs(data, config, env):
                             data['transfers']['xrdcp']['stage-in failure'] += 1
                     else:
                         logger.info("will stream using xrootd instead of copying")
-                        filename = os.path.join(input, file)
+                        filename = join_xrootd_path(input, file)
                         config['mask']['files'].append(filename)
                         config['file map'][filename] = file
                         data['transfers']['root']['stage-in success'] += 1
