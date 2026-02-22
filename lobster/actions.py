@@ -5,7 +5,6 @@ import multiprocessing
 import os
 import time
 import traceback
-
 from lobster.commands.plot import Plotter
 from lobster import util
 
@@ -49,6 +48,7 @@ class Actions(object):
                 util.register_checkpoint(self.config.workdir, 'configuration_check', self.__last_config_update)
             except Exception:
                 logger.exception('failed to update configuration:')
+                logger.error('configuration reload imports <workdir>/config.py as-is; guard top-level commands (e.g. git) in your config with fallback logic')
                 util.PartiallyMutable.purge()
 
             for method, args in util.PartiallyMutable.changes():
