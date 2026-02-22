@@ -5,11 +5,23 @@ import multiprocessing
 import os
 import time
 import traceback
+from contextlib import contextmanager
 
 from lobster.commands.plot import Plotter
 from lobster import util
 
 logger = logging.getLogger('lobster.actions')
+
+
+@contextmanager
+def _temporary_cwd(path):
+    start = os.getcwd()
+    try:
+        if path:
+            os.chdir(path)
+        yield
+    finally:
+        os.chdir(start)
 
 
 def runplots(plotter, foremen):
@@ -43,7 +55,13 @@ class Actions(object):
             try:
                 logger.info('updating configuration')
                 self.__last_config_update = time.time()
-                new_config = imp.load_source('userconfig', configfile).config
+                # Runtime config updates are loaded from <workdir>/config.py,
+                # but user configs often rely on repository-relative execution
+                # context at import time (e.g. git introspection).  Keep the
+                # original base directory as CWD while importing the updated
+                # module to avoid breaking those configs during hot reload.
+                with _temporary_cwd(getattr(self.config, 'base_directory', None)):
+                    new_config = imp.load_source('userconfig', configfile).config
                 self.config.update(new_config)
                 self.config.save()
                 util.register_checkpoint(self.config.workdir, 'configuration_check', self.__last_config_update)
