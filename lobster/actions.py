@@ -17,11 +17,12 @@ logger = logging.getLogger('lobster.actions')
 def _temporary_cwd(path):
     start = os.getcwd()
     try:
-        if path:
+        if path and path != start:
             os.chdir(path)
         yield
     finally:
-        os.chdir(start)
+        if os.getcwd() != start:
+            os.chdir(start)
 
 
 def runplots(plotter, foremen):
@@ -55,12 +56,19 @@ class Actions(object):
             try:
                 logger.info('updating configuration')
                 self.__last_config_update = time.time()
-                # Runtime config updates are loaded from <workdir>/config.py,
-                # but user configs often rely on repository-relative execution
-                # context at import time (e.g. git introspection).  Keep the
-                # original base directory as CWD while importing the updated
-                # module to avoid breaking those configs during hot reload.
-                with _temporary_cwd(getattr(self.config, 'base_directory', None)):
+                # Runtime updates import <workdir>/config.py, but many configs
+                # resolve project-relative paths at import time.  Prefer the
+                # original configuration directory, falling back to the stored
+                # startup directory, so resumed runs behave like initial launch.
+                import_cwd = getattr(self.config, 'base_directory', None)
+                if not import_cwd or not os.path.isdir(import_cwd):
+                    base_cfg = getattr(self.config, 'base_configuration', None)
+                    if base_cfg:
+                        import_cwd = os.path.dirname(base_cfg)
+                if not import_cwd or not os.path.isdir(import_cwd):
+                    import_cwd = getattr(self.config, 'startup_directory', None)
+
+                with _temporary_cwd(import_cwd):
                     new_config = imp.load_source('userconfig', configfile).config
                 self.config.update(new_config)
                 self.config.save()
