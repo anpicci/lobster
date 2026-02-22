@@ -46,9 +46,14 @@ class Actions(object):
                 self.config.update(new_config)
                 self.config.save()
                 util.register_checkpoint(self.config.workdir, 'configuration_check', self.__last_config_update)
-            except Exception:
+            except Exception as e:
                 logger.exception('failed to update configuration:')
                 logger.error('configuration reload imports <workdir>/config.py as-is; guard top-level commands (e.g. git) in your config with fallback logic')
+                if isinstance(e, ModuleNotFoundError):
+                    logger.error(
+                        "missing module '{}' while importing workdir config; ensure dependencies are importable from {} or make imports resilient for workdir reloads".format(
+                            e.name,
+                            getattr(self.config, 'base_configuration', '<unknown config>')))
                 util.PartiallyMutable.purge()
 
             for method, args in util.PartiallyMutable.changes():
