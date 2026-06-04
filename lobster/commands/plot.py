@@ -542,7 +542,15 @@ class Plotter(object):
         with open(fn) as f:
             headers = dict([(a_b[1], a_b[0]) for a_b in enumerate(f.readline()[1:].split())])
         #stats = np.loadtxt(fn)
-        stats=np.genfromtxt(fn)
+        stats = np.genfromtxt(fn)
+        if stats.size == 0:
+            logger.warning('no stats data available in %s; skipping %s stats', fn, category)
+            stats = np.empty((0, len(headers)))
+        else:
+            stats = np.atleast_2d(stats)
+
+        if stats.shape[0] == 0:
+            return headers, stats
 
         # fix units of time
         stats[:, 0] /= 1e6
@@ -822,6 +830,9 @@ class Plotter(object):
 
     def make_time_fraction_plot(self, category):
         headers, stats = self.__category_stats[category]
+        if len(stats) < 2:
+            logger.warning('not enough stats data available for %s time fraction plots; skipping', category)
+            return
 
         wq_labels = [
             'time_send', 'time_receive', 'time_status_msgs',
@@ -1320,6 +1331,9 @@ class Plotter(object):
         # readlog() determines the time bounds of sql queries if not
         # specified explicitly.
         self.__category_stats = {'all': self.readlog()}
+        if len(self.__category_stats['all'][1]) == 0:
+            logger.warning('not enough stats data available for plotting; skipping')
+            return
         for category in self.config.categories:
             label = category.name
             if label == 'merge':
@@ -1446,6 +1460,9 @@ class Plotter(object):
         for category in self.config.categories:
             label = category.name
             if label == 'merge':
+                continue
+            if len(self.__category_stats[label][1]) == 0:
+                logger.warning('no stats data available for %s; skipping category plots', label)
                 continue
             ids = []
             labels = []
